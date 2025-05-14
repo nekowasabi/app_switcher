@@ -170,15 +170,38 @@ namespace AppSwitcher
             {
                 string trimmedLine = line.Trim();
                 
-                if (string.IsNullOrWhiteSpace(trimmedLine) || trimmedLine.StartsWith(";"))
+                if (string.IsNullOrWhiteSpace(trimmedLine) || trimmedLine[0] == ';')
                     continue;
                 
                 int separatorIndex = trimmedLine.IndexOf('=');
                 if (separatorIndex > 0)
                 {
                     string key = trimmedLine.Substring(0, separatorIndex).Trim();
-                    string value = trimmedLine.Substring(separatorIndex + 1).Trim();
+                    string value = trimmedLine.Substring(separatorIndex + 1);
+                    
+                    if (key == "Key")
+                    {
+                        int commentIndex = value.IndexOf(" ;");
+                        if (commentIndex > 0)
+                        {
+                            value = value.Substring(0, commentIndex).Trim();
+                        }
+                        else
+                        {
+                            value = value.Trim();
+                        }
+                    }
+                    else
+                    {
+                        value = value.Trim();
+                    }
+                    
                     settings[key] = value;
+                    
+                    if (key == "Key" && value == ";")
+                    {
+                        Console.WriteLine("Semicolon key detected in settings.ini");
+                    }
                 }
             }
             
