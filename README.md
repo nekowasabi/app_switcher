@@ -1,5 +1,6 @@
 # AppSwitcher
 
+A lightweight Windows utility for quickly switching between applications.
 
 You can edit this file directly with any text editor. After editing, restart the application to apply the changes.
 
@@ -31,9 +32,39 @@ The application uses a settings.ini file located in the same directory as the ap
 ; AppSwitcher Settings
 ; Modifiers: ALT, CTRL, SHIFT, WIN (comma separated)
 Modifiers=ALT
-; Key: Any key from the Keys enum (e.g., Q, W, F1, etc.)
+; Key: Any key from the Keys enum (e.g., Q, W, F1, etc.) or symbol keys (e.g., ;, ,, ., /, etc.)
 Key=Q
 ```
+
+The application supports the following symbol keys:
+- `;` (semicolon)
+- `,` (comma)
+- `.` (period)
+- `/` (forward slash)
+- `'` (single quote)
+- `[` (open bracket)
+- `]` (close bracket)
+- `\` (backslash)
+- `-` (minus)
+- `=` (equals)
+- `` ` `` (backtick)
+## Development
+
+### Building the Project
+
+The project is built using .NET 6.0 with Windows Forms:
+
+```bash
+dotnet build
+```
+
+### Null Reference Handling
+
+This project uses C# nullable reference types to prevent null reference exceptions:
+- Event handlers are marked as nullable with `?` where appropriate
+- Null checks are implemented for dictionary lookups and path operations
+- System.Windows.Forms.Timer is fully qualified to avoid ambiguous references
+
 ## License
 
 MIT
