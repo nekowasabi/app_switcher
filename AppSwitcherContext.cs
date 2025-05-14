@@ -4,6 +4,7 @@ using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using System.IO;
 using System.Collections.Generic;
+using System.Text;
 
 namespace AppSwitcher
 {
@@ -44,9 +45,17 @@ namespace AppSwitcher
         private uint key = (uint)Keys.Q;
 
         private MessageWindow messageWindow;
+        
+        private string logFilePath;
 
         public AppSwitcherContext()
         {
+            string exeDir = Path.GetDirectoryName(Application.ExecutablePath) ?? string.Empty;
+            logFilePath = Path.Combine(exeDir, "app_switcher_log.txt");
+            
+            File.WriteAllText(logFilePath, $"AppSwitcher started at {DateTime.Now}\r\n");
+            LogMessage("Application starting...");
+            
             messageWindow = new MessageWindow();
             messageWindow.HotkeyPressed += OnHotkeyPressed;
 
@@ -65,78 +74,135 @@ namespace AppSwitcher
             StartWindowTracking();
         }
 
+        private void LogMessage(string message)
+        {
+            try
+            {
+                string logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {message}\r\n";
+                File.AppendAllText(logFilePath, logEntry);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error writing to log: {ex.Message}");
+            }
+        }
+
         private void LoadSettings()
         {
             try
             {
                 string exeDir = Path.GetDirectoryName(Application.ExecutablePath) ?? string.Empty;
                 string iniPath = Path.Combine(exeDir, "settings.ini");
+                LogMessage($"Loading settings from: {iniPath}");
 
                 if (!File.Exists(iniPath))
                 {
+                    LogMessage("Settings file not found, creating default");
                     CreateDefaultIniFile(iniPath);
                 }
 
+                LogMessage("Reading settings from INI file");
                 Dictionary<string, string> settings = ReadIniFile(iniPath);
 
                 if (settings.TryGetValue("Modifiers", out string? modifiersStr) && modifiersStr != null)
                 {
+                    LogMessage($"Found Modifiers setting: '{modifiersStr}'");
                     modifiers = 0;
-                    if (modifiersStr.Contains("ALT")) modifiers |= MOD_ALT;
-                    if (modifiersStr.Contains("CTRL")) modifiers |= MOD_CONTROL;
-                    if (modifiersStr.Contains("SHIFT")) modifiers |= MOD_SHIFT;
-                    if (modifiersStr.Contains("WIN")) modifiers |= MOD_WIN;
+                    if (modifiersStr.Contains("ALT")) 
+                    {
+                        modifiers |= MOD_ALT;
+                        LogMessage("Added ALT modifier");
+                    }
+                    if (modifiersStr.Contains("CTRL")) 
+                    {
+                        modifiers |= MOD_CONTROL;
+                        LogMessage("Added CTRL modifier");
+                    }
+                    if (modifiersStr.Contains("SHIFT")) 
+                    {
+                        modifiers |= MOD_SHIFT;
+                        LogMessage("Added SHIFT modifier");
+                    }
+                    if (modifiersStr.Contains("WIN")) 
+                    {
+                        modifiers |= MOD_WIN;
+                        LogMessage("Added WIN modifier");
+                    }
+                    LogMessage($"Final modifiers value: 0x{modifiers:X4}");
+                }
+                else
+                {
+                    LogMessage("Modifiers setting not found or null, using default");
                 }
 
                 if (settings.TryGetValue("Key", out string? keyStr) && keyStr != null)
                 {
+                    LogMessage($"Found Key setting: '{keyStr}' (Length: {keyStr.Length})");
+                    LogMessage($"Key bytes: {BitConverter.ToString(Encoding.UTF8.GetBytes(keyStr))}");
+                    
                     if (keyStr == ";")
                     {
+                        LogMessage("Detected semicolon key, setting to Keys.OemSemicolon");
                         key = (uint)Keys.OemSemicolon;
                     }
                     else if (keyStr == ",")
                     {
+                        LogMessage("Detected comma key, setting to Keys.Oemcomma");
                         key = (uint)Keys.Oemcomma;
                     }
                     else if (keyStr == ".")
                     {
+                        LogMessage("Detected period key, setting to Keys.OemPeriod");
                         key = (uint)Keys.OemPeriod;
                     }
                     else if (keyStr == "/")
                     {
+                        LogMessage("Detected slash key, setting to Keys.OemQuestion");
                         key = (uint)Keys.OemQuestion;
                     }
                     else if (keyStr == "'")
                     {
+                        LogMessage("Detected quote key, setting to Keys.OemQuotes");
                         key = (uint)Keys.OemQuotes;
                     }
                     else if (keyStr == "[")
                     {
+                        LogMessage("Detected open bracket key, setting to Keys.OemOpenBrackets");
                         key = (uint)Keys.OemOpenBrackets;
                     }
                     else if (keyStr == "]")
                     {
+                        LogMessage("Detected close bracket key, setting to Keys.OemCloseBrackets");
                         key = (uint)Keys.OemCloseBrackets;
                     }
                     else if (keyStr == "\\")
                     {
+                        LogMessage("Detected backslash key, setting to Keys.OemBackslash");
                         key = (uint)Keys.OemBackslash;
                     }
                     else if (keyStr == "-")
                     {
+                        LogMessage("Detected minus key, setting to Keys.OemMinus");
                         key = (uint)Keys.OemMinus;
                     }
                     else if (keyStr == "=")
                     {
+                        LogMessage("Detected equals key, setting to Keys.Oemplus");
                         key = (uint)Keys.Oemplus;
                     }
                     else if (keyStr == "`")
                     {
+                        LogMessage("Detected backtick key, setting to Keys.Oemtilde");
                         key = (uint)Keys.Oemtilde;
                     }
                     else if (Enum.TryParse(keyStr, out Keys parsedKey))
                     {
+                        LogMessage($"Parsed key as enum value: {parsedKey} (0x{(uint)parsedKey:X4})");
                         key = (uint)parsedKey;
+                    }
+                    else
+                    {
+                        LogMessage($"WARNING: Could not parse key '{keyStr}', using default");
                     }
                 }
             }
@@ -165,44 +231,84 @@ namespace AppSwitcher
         private Dictionary<string, string> ReadIniFile(string path)
         {
             Dictionary<string, string> settings = new Dictionary<string, string>();
+            LogMessage($"Reading INI file: {path}");
             
-            foreach (string line in File.ReadAllLines(path))
+            string[] lines = File.ReadAllLines(path);
+            LogMessage($"INI file contains {lines.Length} lines");
+            
+            LogMessage("Raw INI file content:");
+            for (int i = 0; i < lines.Length; i++)
             {
+                LogMessage($"  Line {i+1}: '{lines[i]}'");
+            }
+            
+            foreach (string line in lines)
+            {
+                LogMessage($"Processing line: '{line}'");
                 string trimmedLine = line.Trim();
                 
-                if (string.IsNullOrWhiteSpace(trimmedLine) || trimmedLine[0] == ';')
+                if (string.IsNullOrWhiteSpace(trimmedLine))
+                {
+                    LogMessage("  Skipping empty line");
                     continue;
+                }
+                
+                if (trimmedLine.Length > 0 && trimmedLine[0] == ';')
+                {
+                    LogMessage("  Skipping comment line");
+                    continue;
+                }
                 
                 int separatorIndex = trimmedLine.IndexOf('=');
                 if (separatorIndex > 0)
                 {
-                    string key = trimmedLine.Substring(0, separatorIndex).Trim();
-                    string value = trimmedLine.Substring(separatorIndex + 1);
+                    string keyName = trimmedLine.Substring(0, separatorIndex).Trim();
+                    string rawValue = trimmedLine.Substring(separatorIndex + 1);
+                    LogMessage($"  Found key-value pair: '{keyName}'='{rawValue}'");
                     
-                    if (key == "Key")
+                    string finalValue;
+                    if (keyName == "Key")
                     {
-                        int commentIndex = value.IndexOf(" ;");
+                        LogMessage($"  Special handling for Key setting");
+                        LogMessage($"  Raw value: '{rawValue}' (Length: {rawValue.Length})");
+                        LogMessage($"  Raw value bytes: {BitConverter.ToString(Encoding.UTF8.GetBytes(rawValue))}");
+                        
+                        int commentIndex = rawValue.IndexOf(" ;");
                         if (commentIndex > 0)
                         {
-                            value = value.Substring(0, commentIndex).Trim();
+                            finalValue = rawValue.Substring(0, commentIndex).Trim();
+                            LogMessage($"  Found comment at position {commentIndex}, trimmed value: '{finalValue}'");
                         }
                         else
                         {
-                            value = value.Trim();
+                            finalValue = rawValue.Trim();
+                            LogMessage($"  No comment found, trimmed value: '{finalValue}'");
+                        }
+                        
+                        if (finalValue == ";")
+                        {
+                            LogMessage("  IMPORTANT: Semicolon key detected!");
                         }
                     }
                     else
                     {
-                        value = value.Trim();
+                        finalValue = rawValue.Trim();
+                        LogMessage($"  Standard handling, trimmed value: '{finalValue}'");
                     }
                     
-                    settings[key] = value;
-                    
-                    if (key == "Key" && value == ";")
-                    {
-                        Console.WriteLine("Semicolon key detected in settings.ini");
-                    }
+                    settings[keyName] = finalValue;
+                    LogMessage($"  Added to settings dictionary: '{keyName}'='{finalValue}'");
                 }
+                else
+                {
+                    LogMessage($"  Line does not contain '=' separator, skipping");
+                }
+            }
+            
+            LogMessage($"Finished reading INI file, found {settings.Count} settings");
+            foreach (var kvp in settings)
+            {
+                LogMessage($"  Setting: '{kvp.Key}'='{kvp.Value}'");
             }
             
             return settings;
@@ -212,10 +318,23 @@ namespace AppSwitcher
         {
             uint finalModifiers = modifiers | MOD_NOREPEAT;
             
-            if (!RegisterHotKey(messageWindow.Handle, HOTKEY_ID, finalModifiers, key))
+            LogMessage($"Registering hotkey with Windows:");
+            LogMessage($"  Window Handle: 0x{messageWindow.Handle.ToInt64():X8}");
+            LogMessage($"  Hotkey ID: {HOTKEY_ID}");
+            LogMessage($"  Modifiers: 0x{modifiers:X4} (raw), 0x{finalModifiers:X4} (with MOD_NOREPEAT)");
+            LogMessage($"  Key value: 0x{key:X4} ({(Keys)key})");
+            
+            bool success = RegisterHotKey(messageWindow.Handle, HOTKEY_ID, finalModifiers, key);
+            if (!success)
             {
-                MessageBox.Show("Failed to register hotkey. The application may not work correctly.",
+                int errorCode = Marshal.GetLastWin32Error();
+                LogMessage($"Failed to register hotkey! Win32 error code: {errorCode}");
+                MessageBox.Show($"Failed to register hotkey. Error code: {errorCode}",
                     "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            else
+            {
+                LogMessage("Hotkey registered successfully");
             }
         }
 
@@ -226,6 +345,7 @@ namespace AppSwitcher
 
         private void OnHotkeyPressed(object? sender, EventArgs e)
         {
+            LogMessage("Hotkey pressed event triggered");
             SwitchToPreviousWindow();
         }
 
