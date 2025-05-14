@@ -88,10 +88,56 @@ namespace AppSwitcher
                     if (modifiersStr.Contains("WIN")) modifiers |= MOD_WIN;
                 }
 
-                if (settings.TryGetValue("Key", out string? keyStr) && keyStr != null && 
-                    Enum.TryParse(keyStr, out Keys parsedKey))
+                if (settings.TryGetValue("Key", out string? keyStr) && keyStr != null)
                 {
-                    key = (uint)parsedKey;
+                    if (keyStr == ";")
+                    {
+                        key = (uint)Keys.OemSemicolon;
+                    }
+                    else if (keyStr == ",")
+                    {
+                        key = (uint)Keys.Oemcomma;
+                    }
+                    else if (keyStr == ".")
+                    {
+                        key = (uint)Keys.OemPeriod;
+                    }
+                    else if (keyStr == "/")
+                    {
+                        key = (uint)Keys.OemQuestion;
+                    }
+                    else if (keyStr == "'")
+                    {
+                        key = (uint)Keys.OemQuotes;
+                    }
+                    else if (keyStr == "[")
+                    {
+                        key = (uint)Keys.OemOpenBrackets;
+                    }
+                    else if (keyStr == "]")
+                    {
+                        key = (uint)Keys.OemCloseBrackets;
+                    }
+                    else if (keyStr == "\\")
+                    {
+                        key = (uint)Keys.OemBackslash;
+                    }
+                    else if (keyStr == "-")
+                    {
+                        key = (uint)Keys.OemMinus;
+                    }
+                    else if (keyStr == "=")
+                    {
+                        key = (uint)Keys.Oemplus;
+                    }
+                    else if (keyStr == "`")
+                    {
+                        key = (uint)Keys.Oemtilde;
+                    }
+                    else if (Enum.TryParse(keyStr, out Keys parsedKey))
+                    {
+                        key = (uint)parsedKey;
+                    }
                 }
             }
             catch (Exception ex)

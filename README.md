@@ -32,9 +32,22 @@ The application uses a settings.ini file located in the same directory as the ap
 ; AppSwitcher Settings
 ; Modifiers: ALT, CTRL, SHIFT, WIN (comma separated)
 Modifiers=ALT
-; Key: Any key from the Keys enum (e.g., Q, W, F1, etc.)
+; Key: Any key from the Keys enum (e.g., Q, W, F1, etc.) or symbol keys (e.g., ;, ,, ., /, etc.)
 Key=Q
 ```
+
+The application supports the following symbol keys:
+- `;` (semicolon)
+- `,` (comma)
+- `.` (period)
+- `/` (forward slash)
+- `'` (single quote)
+- `[` (open bracket)
+- `]` (close bracket)
+- `\` (backslash)
+- `-` (minus)
+- `=` (equals)
+- `` ` `` (backtick)
 ## Development
 
 ### Building the Project
