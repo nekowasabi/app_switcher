@@ -34,7 +34,7 @@ namespace AppSwitcher
         private const uint MOD_WIN = 0x0008;
         private const uint MOD_NOREPEAT = 0x4000;
 
-        private const int HOTKEY_ID = 9000;
+        public const int HOTKEY_ID = 9000;
 
         private NotifyIcon trayIcon;
         
@@ -58,6 +58,7 @@ namespace AppSwitcher
             
             messageWindow = new MessageWindow();
             messageWindow.HotkeyPressed += OnHotkeyPressed;
+            messageWindow.SetParentContext(this);
 
             LoadSettings();
 
@@ -436,6 +437,7 @@ namespace AppSwitcher
     public class MessageWindow : Form
     {
         private const int WM_HOTKEY = 0x0312;
+        private AppSwitcherContext? parentContext;
         
         public event EventHandler? HotkeyPressed;
         
@@ -449,11 +451,42 @@ namespace AppSwitcher
             this.Opacity = 0;
         }
         
+        public void SetParentContext(AppSwitcherContext context)
+        {
+            parentContext = context;
+        }
+        
+        private void LogMessage(string message)
+        {
+            parentContext?.LogMessage(message);
+        }
+        
         protected override void WndProc(ref Message m)
         {
-            if (m.Msg == WM_HOTKEY)
+            if (parentContext != null)
             {
-                HotkeyPressed?.Invoke(this, EventArgs.Empty);
+                if (m.Msg == WM_HOTKEY)
+                {
+                    int id = m.WParam.ToInt32();
+                    int modifierAndKey = m.LParam.ToInt32();
+                    int modifiers = modifierAndKey & 0xFFFF;
+                    int key = (modifierAndKey >> 16) & 0xFFFF;
+                    
+                    LogMessage($"WM_HOTKEY message received:");
+                    LogMessage($"  ID: {id} (Expected: {AppSwitcherContext.HOTKEY_ID})");
+                    LogMessage($"  Modifiers: 0x{modifiers:X4}");
+                    LogMessage($"  Key: 0x{key:X4} ({(Keys)key})");
+                    
+                    if (id == AppSwitcherContext.HOTKEY_ID)
+                    {
+                        LogMessage("  Invoking HotkeyPressed event");
+                        HotkeyPressed?.Invoke(this, EventArgs.Empty);
+                    }
+                    else
+                    {
+                        LogMessage("  Ignoring hotkey with wrong ID");
+                    }
+                }
             }
             
             base.WndProc(ref m);
