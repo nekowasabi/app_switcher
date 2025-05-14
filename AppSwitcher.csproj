@@ -6,11 +6,9 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <ApplicationIcon>Resources\app_icon.ico</ApplicationIcon>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Content Include="Resources\app_icon.ico" />
-  </ItemGroup>
+  <!-- Removed icon reference to fix build error -->
+
 
 </Project>

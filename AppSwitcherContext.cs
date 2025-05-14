@@ -79,7 +79,7 @@ namespace AppSwitcher
 
                 Dictionary<string, string> settings = ReadIniFile(iniPath);
 
-                if (settings.TryGetValue("Modifiers", out string modifiersStr))
+                if (settings.TryGetValue("Modifiers", out string? modifiersStr) && modifiersStr != null)
                 {
                     modifiers = 0;
                     if (modifiersStr.Contains("ALT")) modifiers |= MOD_ALT;
@@ -88,7 +88,7 @@ namespace AppSwitcher
                     if (modifiersStr.Contains("WIN")) modifiers |= MOD_WIN;
                 }
 
-                if (settings.TryGetValue("Key", out string keyStr) && 
+                if (settings.TryGetValue("Key", out string? keyStr) && keyStr != null && 
                     Enum.TryParse(keyStr, out Keys parsedKey))
                 {
                     key = (uint)parsedKey;
