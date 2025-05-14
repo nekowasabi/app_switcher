@@ -69,7 +69,7 @@ namespace AppSwitcher
         {
             try
             {
-                string exeDir = Path.GetDirectoryName(Application.ExecutablePath);
+                string exeDir = Path.GetDirectoryName(Application.ExecutablePath) ?? string.Empty;
                 string iniPath = Path.Combine(exeDir, "settings.ini");
 
                 if (!File.Exists(iniPath))
@@ -155,14 +155,14 @@ namespace AppSwitcher
             UnregisterHotKey(messageWindow.Handle, HOTKEY_ID);
         }
 
-        private void OnHotkeyPressed(object sender, EventArgs e)
+        private void OnHotkeyPressed(object? sender, EventArgs e)
         {
             SwitchToPreviousWindow();
         }
 
         private void StartWindowTracking()
         {
-            Timer timer = new Timer();
+            System.Windows.Forms.Timer timer = new System.Windows.Forms.Timer();
             timer.Interval = 100; // Check every 100ms
             timer.Tick += (sender, e) => TrackWindowChanges();
             timer.Start();
@@ -202,7 +202,7 @@ namespace AppSwitcher
 
         private void OpenSettings()
         {
-            string exeDir = Path.GetDirectoryName(Application.ExecutablePath);
+            string exeDir = Path.GetDirectoryName(Application.ExecutablePath) ?? string.Empty;
             string iniPath = Path.Combine(exeDir, "settings.ini");
             
             System.Diagnostics.Process.Start("notepad.exe", iniPath);
@@ -248,7 +248,7 @@ namespace AppSwitcher
     {
         private const int WM_HOTKEY = 0x0312;
         
-        public event EventHandler HotkeyPressed;
+        public event EventHandler? HotkeyPressed;
         
         public MessageWindow()
         {
