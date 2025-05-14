@@ -24,6 +24,9 @@ namespace AppSwitcher
 
         [DllImport("user32.dll")]
         private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+        
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetKeyboardLayout(uint idThread);
 
         private const uint GW_HWNDNEXT = 2;
         private const uint GW_HWNDPREV = 3;
@@ -45,6 +48,8 @@ namespace AppSwitcher
         private uint key = (uint)Keys.Q;
         private uint alternativeKey = (uint)Keys.K;
         private bool useAlternativeKey = false;
+        
+        private uint semicolonVirtualKeyCode = (uint)Keys.OemSemicolon;
 
         private MessageWindow messageWindow;
         
@@ -145,8 +150,15 @@ namespace AppSwitcher
                     
                     if (keyStr == ";")
                     {
-                        LogMessage("Detected semicolon key, setting to Keys.OemSemicolon");
+                        LogMessage("Detected semicolon key, trying multiple virtual key codes");
+                        
+                        IntPtr keyboardLayout = GetKeyboardLayout(0);
+                        LogMessage($"Current keyboard layout: 0x{keyboardLayout.ToInt64():X8}");
+                        
                         key = (uint)Keys.OemSemicolon;
+                        LogMessage($"Using primary key code: 0x{key:X4} (Keys.OemSemicolon)");
+                        
+                        semicolonVirtualKeyCode = key;
                     }
                     else if (keyStr == ",")
                     {
@@ -565,6 +577,9 @@ namespace AppSwitcher
                     {
                         LogMessage("Alt+; key combination detected directly");
                         LogMessage("This suggests the hotkey registration might not be working correctly");
+                        
+                        LogMessage("Directly triggering hotkey action for Alt+;");
+                        HotkeyPressed?.Invoke(this, EventArgs.Empty);
                     }
                 }
             }
