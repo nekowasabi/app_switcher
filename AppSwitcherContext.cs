@@ -75,7 +75,7 @@ namespace AppSwitcher
             StartWindowTracking();
         }
 
-        private void LogMessage(string message)
+        public void LogMessage(string message)
         {
             try
             {
