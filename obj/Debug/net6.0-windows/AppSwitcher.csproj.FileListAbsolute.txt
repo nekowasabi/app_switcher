@@ -1,0 +1,4 @@
+C:\Users\taket\OneDrive\デスクトップ\AppSwitcher\obj\Debug\net6.0-windows\AppSwitcher.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\taket\OneDrive\デスクトップ\AppSwitcher\obj\Debug\net6.0-windows\AppSwitcher.AssemblyInfoInputs.cache
+C:\Users\taket\OneDrive\デスクトップ\AppSwitcher\obj\Debug\net6.0-windows\AppSwitcher.AssemblyInfo.cs
+C:\Users\taket\OneDrive\デスクトップ\AppSwitcher\obj\Debug\net6.0-windows\AppSwitcher.csproj.CoreCompileInputs.cache

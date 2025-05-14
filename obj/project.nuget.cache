@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "dgSpecHash": "QDtBn5LiHj4=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\taket\\OneDrive\\デスクトップ\\AppSwitcher\\AppSwitcher.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\taket\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\6.0.36\\microsoft.windowsdesktop.app.ref.6.0.36.nupkg.sha512",
+    "C:\\Users\\taket\\.nuget\\packages\\microsoft.netcore.app.ref\\6.0.36\\microsoft.netcore.app.ref.6.0.36.nupkg.sha512",
+    "C:\\Users\\taket\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\6.0.36\\microsoft.aspnetcore.app.ref.6.0.36.nupkg.sha512",
+    "C:\\Users\\taket\\.nuget\\packages\\microsoft.netcore.app.host.win-x64\\6.0.36\\microsoft.netcore.app.host.win-x64.6.0.36.nupkg.sha512"
+  ],
+  "logs": []
+}
