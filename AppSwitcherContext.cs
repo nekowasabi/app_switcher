@@ -43,6 +43,8 @@ namespace AppSwitcher
 
         private uint modifiers = MOD_ALT;
         private uint key = (uint)Keys.Q;
+        private uint alternativeKey = (uint)Keys.K;
+        private bool useAlternativeKey = false;
 
         private MessageWindow messageWindow;
         
@@ -206,6 +208,25 @@ namespace AppSwitcher
                         LogMessage($"WARNING: Could not parse key '{keyStr}', using default");
                     }
                 }
+                
+                if (settings.TryGetValue("AlternativeKey", out string? altKeyStr) && altKeyStr != null)
+                {
+                    LogMessage($"Found AlternativeKey setting: '{altKeyStr}'");
+                    
+                    if (altKeyStr == ";")
+                    {
+                        LogMessage("Detected semicolon key for alternative, setting to Keys.OemSemicolon");
+                        alternativeKey = (uint)Keys.OemSemicolon;
+                    }
+                    else if (Enum.TryParse(altKeyStr, out Keys parsedAltKey))
+                    {
+                        LogMessage($"Parsed alternative key as enum value: {parsedAltKey} (0x{(uint)parsedAltKey:X4})");
+                        alternativeKey = (uint)parsedAltKey;
+                    }
+                    
+                    useAlternativeKey = alternativeKey != key;
+                    LogMessage($"Alternative key is {(useAlternativeKey ? "enabled" : "disabled")}");
+                }
             }
             catch (Exception ex)
             {
@@ -223,8 +244,11 @@ namespace AppSwitcher
                 "; AppSwitcher Settings\r\n" +
                 "; Modifiers: ALT, CTRL, SHIFT, WIN (comma separated)\r\n" +
                 "Modifiers=ALT\r\n" +
-                "; Key: Any key from the Keys enum (e.g., Q, W, F1, etc.)\r\n" +
-                "Key=Q\r\n";
+                "; Key: Any key from the Keys enum (e.g., Q, W, F1, etc.) or symbol keys (;, ,, ., etc.)\r\n" +
+                "; For testing, try using K if semicolon (;) doesn't work\r\n" +
+                "Key=Q\r\n" +
+                "; Alternative key to try if the primary key doesn't work\r\n" +
+                "AlternativeKey=K\r\n";
 
             File.WriteAllText(path, defaultContent);
         }
@@ -315,11 +339,13 @@ namespace AppSwitcher
             return settings;
         }
 
+        public const int ALTERNATIVE_HOTKEY_ID = 9001;
+        
         private void RegisterHotKey()
         {
             uint finalModifiers = modifiers | MOD_NOREPEAT;
             
-            LogMessage($"Registering hotkey with Windows:");
+            LogMessage($"Registering primary hotkey with Windows:");
             LogMessage($"  Window Handle: 0x{messageWindow.Handle.ToInt64():X8}");
             LogMessage($"  Hotkey ID: {HOTKEY_ID}");
             LogMessage($"  Modifiers: 0x{modifiers:X4} (raw), 0x{finalModifiers:X4} (with MOD_NOREPEAT)");
@@ -329,19 +355,45 @@ namespace AppSwitcher
             if (!success)
             {
                 int errorCode = Marshal.GetLastWin32Error();
-                LogMessage($"Failed to register hotkey! Win32 error code: {errorCode}");
-                MessageBox.Show($"Failed to register hotkey. Error code: {errorCode}",
+                LogMessage($"Failed to register primary hotkey! Win32 error code: {errorCode}");
+                MessageBox.Show($"Failed to register primary hotkey. Error code: {errorCode}",
                     "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
             else
             {
-                LogMessage("Hotkey registered successfully");
+                LogMessage("Primary hotkey registered successfully");
+            }
+            
+            if (useAlternativeKey)
+            {
+                LogMessage($"Registering alternative hotkey with Windows:");
+                LogMessage($"  Window Handle: 0x{messageWindow.Handle.ToInt64():X8}");
+                LogMessage($"  Hotkey ID: {ALTERNATIVE_HOTKEY_ID}");
+                LogMessage($"  Modifiers: 0x{modifiers:X4} (raw), 0x{finalModifiers:X4} (with MOD_NOREPEAT)");
+                LogMessage($"  Key value: 0x{alternativeKey:X4} ({(Keys)alternativeKey})");
+                
+                bool altSuccess = RegisterHotKey(messageWindow.Handle, ALTERNATIVE_HOTKEY_ID, finalModifiers, alternativeKey);
+                if (!altSuccess)
+                {
+                    int errorCode = Marshal.GetLastWin32Error();
+                    LogMessage($"Failed to register alternative hotkey! Win32 error code: {errorCode}");
+                }
+                else
+                {
+                    LogMessage("Alternative hotkey registered successfully");
+                }
             }
         }
 
         private void UnregisterHotKey()
         {
+            LogMessage("Unregistering hotkeys");
             UnregisterHotKey(messageWindow.Handle, HOTKEY_ID);
+            
+            if (useAlternativeKey)
+            {
+                UnregisterHotKey(messageWindow.Handle, ALTERNATIVE_HOTKEY_ID);
+            }
         }
 
         private void OnHotkeyPressed(object? sender, EventArgs e)
@@ -461,10 +513,26 @@ namespace AppSwitcher
             parentContext?.LogMessage(message);
         }
         
+        private const int WM_KEYDOWN = 0x0100;
+        private const int WM_KEYUP = 0x0101;
+        private const int WM_SYSKEYDOWN = 0x0104;
+        private const int WM_SYSKEYUP = 0x0105;
+        
+        private int messageCount = 0;
+        private DateTime lastLogTime = DateTime.MinValue;
+        
         protected override void WndProc(ref Message m)
         {
             if (parentContext != null)
             {
+                messageCount++;
+                if ((DateTime.Now - lastLogTime).TotalSeconds >= 5)
+                {
+                    LogMessage($"Received {messageCount} Windows messages in the last 5 seconds");
+                    messageCount = 0;
+                    lastLogTime = DateTime.Now;
+                }
+                
                 if (m.Msg == WM_HOTKEY)
                 {
                     int id = m.WParam.ToInt32();
@@ -473,18 +541,30 @@ namespace AppSwitcher
                     int key = (modifierAndKey >> 16) & 0xFFFF;
                     
                     LogMessage($"WM_HOTKEY message received:");
-                    LogMessage($"  ID: {id} (Expected: {AppSwitcherContext.HOTKEY_ID})");
+                    LogMessage($"  ID: {id} (Primary: {AppSwitcherContext.HOTKEY_ID}, Alternative: {AppSwitcherContext.ALTERNATIVE_HOTKEY_ID})");
                     LogMessage($"  Modifiers: 0x{modifiers:X4}");
                     LogMessage($"  Key: 0x{key:X4} ({(Keys)key})");
                     
-                    if (id == AppSwitcherContext.HOTKEY_ID)
+                    if (id == AppSwitcherContext.HOTKEY_ID || id == AppSwitcherContext.ALTERNATIVE_HOTKEY_ID)
                     {
-                        LogMessage("  Invoking HotkeyPressed event");
+                        string keyType = id == AppSwitcherContext.HOTKEY_ID ? "primary" : "alternative";
+                        LogMessage($"  Invoking HotkeyPressed event for {keyType} hotkey");
                         HotkeyPressed?.Invoke(this, EventArgs.Empty);
                     }
                     else
                     {
                         LogMessage("  Ignoring hotkey with wrong ID");
+                    }
+                }
+                else if (m.Msg == WM_KEYDOWN || m.Msg == WM_SYSKEYDOWN)
+                {
+                    int keyCode = m.WParam.ToInt32();
+                    LogMessage($"Key pressed: 0x{keyCode:X4} ({(Keys)keyCode})");
+                    
+                    if (m.Msg == WM_SYSKEYDOWN && keyCode == (int)Keys.OemSemicolon)
+                    {
+                        LogMessage("Alt+; key combination detected directly");
+                        LogMessage("This suggests the hotkey registration might not be working correctly");
                     }
                 }
             }
